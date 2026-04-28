@@ -51,6 +51,21 @@ Use a clean gallery interface with underground art identity:
 Avoid a generic ecommerce feel. The offline meetup and local artist focus should
 be part of the product identity.
 
+## Local Development
+
+Install dependencies and start the frontend:
+
+```bash
+npm install
+npm run dev
+```
+
+Build the app before opening a pull request:
+
+```bash
+npm run build
+```
+
 ## Branch Workflow
 
 `main` is the stable branch for demos, submissions, and release-ready work.
