@@ -14,6 +14,8 @@ import { ArtworkCard } from './components/ArtworkCard';
 import { FilterRail } from './components/FilterRail';
 import { ListingDetail } from './components/ListingDetail';
 import { MapPanel } from './components/MapPanel';
+import { SavedPage } from './components/SavedPage';
+import { SellPage } from './components/SellPage';
 import { SignInPage } from './components/SignInPage';
 import { listings as seedListings } from './data/listings';
 import { fetchListings } from './lib/api';
@@ -88,6 +90,13 @@ export default function App() {
         path="/signin"
         element={<SignInPage currentUser={currentUser} onSignIn={signIn} />}
       />
+      <Route
+        path="/saved"
+        element={
+          <SavedPage savedOverrides={savedOverrides} setSavedOverrides={setSavedOverrides} />
+        }
+      />
+      <Route path="/sell" element={<SellPage currentUser={currentUser} />} />
       <Route
         path="/account"
         element={<AccountPage currentUser={currentUser} onSignOut={signOut} />}
@@ -273,11 +282,11 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
           <Link className="active" to="/">
             Browse
           </Link>
-          <a href="#sell">Sell</a>
-          <a className="saved-link" href="#saved">
+          <Link to="/sell">Sell</Link>
+          <Link className="saved-link" to="/saved">
             <Heart size={18} aria-hidden="true" />
             Saved
-          </a>
+          </Link>
           <Link className="sign-in" to={currentUser ? '/account' : '/signin'}>
             {currentUser ? currentUser.role : 'Sign in'}
           </Link>
