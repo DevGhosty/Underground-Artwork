@@ -39,6 +39,12 @@ export type ListingsRequest = {
   pageSize?: number;
 };
 
+export type ContactSellerRequest = {
+  listingId: number;
+  message: string;
+  contactHint?: string;
+};
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -112,4 +118,26 @@ export async function fetchListings({
   }
 
   return resolveListingImages(parsed.data.data);
+}
+
+export async function sendContactRequest({
+  listingId,
+  message,
+  contactHint,
+}: ContactSellerRequest): Promise<void> {
+  const response = await fetch(`${getApiBaseUrl()}/contact`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      listingId,
+      message,
+      contactHint: contactHint?.trim() || undefined,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new ApiError('Could not send your note to the seller.', response.status);
+  }
 }
