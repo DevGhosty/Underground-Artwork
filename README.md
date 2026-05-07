@@ -67,7 +67,8 @@ npm run dev:api
 ```
 
 Defaults: `http://127.0.0.1:3000`, CORS for `http://localhost:5173`. Copy
-`apps/api/.env.example` to `apps/api/.env` to override `PORT` or `WEB_ORIGINS`.
+`.env.example` to `.env` to override the frontend `VITE_API_URL`, and copy
+`apps/api/.env.example` to `apps/api/.env` to override API `PORT` or `WEB_ORIGINS`.
 
 Build the app before opening a pull request:
 

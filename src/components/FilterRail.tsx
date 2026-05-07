@@ -9,7 +9,7 @@ type FilterRailProps = {
   onDistanceChange: (distance: number) => void;
   onMediumToggle: (medium: string) => void;
   onReset: () => void;
-  onStatusToggle: (status: string) => void;
+  onStatusToggle: (status: ListingStatus) => void;
 };
 
 const mediumCounts: Record<string, number> = {
