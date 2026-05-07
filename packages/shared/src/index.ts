@@ -5,6 +5,7 @@ export const listingAccentValues = ["red", "blue", "yellow", "teal", "magenta", 
 export const listingSizeValues = ["standard", "tall", "wide"] as const;
 export const listingCategoryValues = ["prints", "painting", "drawing", "mixed-media", "objects"] as const;
 export const listingsSortValues = ["newest", "nearby", "price"] as const;
+export const userRoleValues = ["buyer", "seller", "admin"] as const;
 
 export const maxListingsPageSize = 50;
 
@@ -13,6 +14,7 @@ export const listingAccentSchema = z.enum(listingAccentValues);
 export const listingSizeSchema = z.enum(listingSizeValues);
 export const listingCategorySchema = z.enum(listingCategoryValues);
 export const listingsSortSchema = z.enum(listingsSortValues);
+export const userRoleSchema = z.enum(userRoleValues);
 
 export const listingSchema = z.object({
   id: z.number().int().positive(),
@@ -80,11 +82,23 @@ export const contactBodySchema = z.object({
   contactHint: z.string().trim().max(500).optional(),
 });
 
+export const sessionUserSchema = z.object({
+  id: z.string().min(1),
+  displayName: z.string().min(1),
+  role: userRoleSchema,
+  artistHandle: z.string().min(1).optional(),
+});
+
+export const sessionResponseSchema = z.object({
+  user: sessionUserSchema.nullable(),
+});
+
 export type ListingStatus = z.infer<typeof listingStatusSchema>;
 export type ListingAccent = z.infer<typeof listingAccentSchema>;
 export type ListingSize = z.infer<typeof listingSizeSchema>;
 export type ListingCategory = z.infer<typeof listingCategorySchema>;
 export type ListingsSort = z.infer<typeof listingsSortSchema>;
+export type UserRole = z.infer<typeof userRoleSchema>;
 export type Listing = z.infer<typeof listingSchema>;
 export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
 export type ListingResponse = z.infer<typeof listingResponseSchema>;
@@ -92,6 +106,8 @@ export type ListingListResponse = z.infer<typeof listingListResponseSchema>;
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;
 export type ListingsQueryParsed = z.infer<typeof listingsQuerySchema>;
 export type ContactBody = z.infer<typeof contactBodySchema>;
+export type SessionUser = z.infer<typeof sessionUserSchema>;
+export type SessionResponse = z.infer<typeof sessionResponseSchema>;
 
 export type ListingsQuery = {
   search?: string;
