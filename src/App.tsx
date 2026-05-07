@@ -9,13 +9,16 @@ import { useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { ListingCategory, ListingStatus, ListingsSort } from '@underground-artwork/shared';
+import { AccountPage } from './components/AccountPage';
 import { ArtworkCard } from './components/ArtworkCard';
 import { FilterRail } from './components/FilterRail';
 import { ListingDetail } from './components/ListingDetail';
 import { MapPanel } from './components/MapPanel';
+import { SignInPage } from './components/SignInPage';
 import { listings as seedListings } from './data/listings';
 import { fetchListings } from './lib/api';
-import type { PriceBand } from './types';
+import { clearStoredSession, readStoredSession, storeSession } from './lib/session';
+import type { PriceBand, SessionUser } from './types';
 
 const mediums = ['Print', 'Painting', 'Drawing', 'Mixed Media', 'Ceramic', 'Textile'];
 const statuses: ListingStatus[] = [...listingStatusValues];
@@ -40,32 +43,60 @@ const priceRanges: Record<PriceBand, { minPrice?: number; maxPrice?: number }> =
 };
 
 type BrowsePageProps = {
+  currentUser: SessionUser | null;
   savedOverrides: Record<number, boolean>;
   setSavedOverrides: Dispatch<SetStateAction<Record<number, boolean>>>;
 };
 
 export default function App() {
   const [savedOverrides, setSavedOverrides] = useState<Record<number, boolean>>({});
+  const [currentUser, setCurrentUser] = useState<SessionUser | null>(() => readStoredSession());
+
+  function signIn(user: SessionUser) {
+    storeSession(user);
+    setCurrentUser(user);
+  }
+
+  function signOut() {
+    clearStoredSession();
+    setCurrentUser(null);
+  }
 
   return (
     <Routes>
       <Route
         path="/"
         element={
-          <BrowsePage savedOverrides={savedOverrides} setSavedOverrides={setSavedOverrides} />
+          <BrowsePage
+            currentUser={currentUser}
+            savedOverrides={savedOverrides}
+            setSavedOverrides={setSavedOverrides}
+          />
         }
       />
       <Route
         path="/listings/:listingId"
         element={
-          <BrowsePage savedOverrides={savedOverrides} setSavedOverrides={setSavedOverrides} />
+          <BrowsePage
+            currentUser={currentUser}
+            savedOverrides={savedOverrides}
+            setSavedOverrides={setSavedOverrides}
+          />
         }
+      />
+      <Route
+        path="/signin"
+        element={<SignInPage currentUser={currentUser} onSignIn={signIn} />}
+      />
+      <Route
+        path="/account"
+        element={<AccountPage currentUser={currentUser} onSignOut={signOut} />}
       />
     </Routes>
   );
 }
 
-function BrowsePage({ savedOverrides, setSavedOverrides }: BrowsePageProps) {
+function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePageProps) {
   const navigate = useNavigate();
   const { listingId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -247,9 +278,9 @@ function BrowsePage({ savedOverrides, setSavedOverrides }: BrowsePageProps) {
             <Heart size={18} aria-hidden="true" />
             Saved
           </a>
-          <a className="sign-in" href="#signin">
-            Sign in
-          </a>
+          <Link className="sign-in" to={currentUser ? '/account' : '/signin'}>
+            {currentUser ? currentUser.role : 'Sign in'}
+          </Link>
         </nav>
       </header>
 
