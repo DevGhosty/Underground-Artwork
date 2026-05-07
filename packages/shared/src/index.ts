@@ -8,6 +8,11 @@ export const listingsSortValues = ["newest", "nearby", "price"] as const;
 export const userRoleValues = ["buyer", "seller", "admin"] as const;
 
 export const maxListingsPageSize = 50;
+export const maxListingSearchLength = 120;
+export const maxListingMediumFilters = 12;
+export const maxContactMessageLength = 2000;
+export const maxContactHintLength = 500;
+export const maxContactRequestBytes = 12_000;
 
 export const listingStatusSchema = z.enum(listingStatusValues);
 export const listingAccentSchema = z.enum(listingAccentValues);
@@ -58,28 +63,41 @@ export const apiErrorResponseSchema = z.object({
   }),
 });
 
+const finiteNumberSchema = z.coerce.number().finite();
+
 export const listingsQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(maxListingsPageSize).default(20),
+  page: finiteNumberSchema.int().min(1).default(1),
+  pageSize: finiteNumberSchema.int().min(1).max(maxListingsPageSize).default(20),
   search: z
     .string()
+    .trim()
+    .max(maxListingSearchLength)
     .optional()
-    .transform((s) => (s && s.trim() !== "" ? s.trim() : undefined)),
+    .transform((s) => (s && s !== "" ? s : undefined)),
   sort: listingsSortSchema.default("newest"),
-  minPrice: z.coerce.number().optional(),
-  maxPrice: z.coerce.number().optional(),
-  maxDistance: z.coerce.number().optional(),
-  medium: z.array(z.string().min(1)).default([]),
-  status: z.array(listingStatusSchema).default([...listingStatusValues]),
+  minPrice: finiteNumberSchema.nonnegative().optional(),
+  maxPrice: finiteNumberSchema.nonnegative().optional(),
+  maxDistance: finiteNumberSchema.nonnegative().max(50).optional(),
+  medium: z.array(z.string().trim().min(1).max(60)).max(maxListingMediumFilters).default([]),
+  status: z.array(listingStatusSchema).max(listingStatusValues.length).default([...listingStatusValues]),
   category: listingCategorySchema.optional(),
+}).refine((query) => {
+  return (
+    query.minPrice === undefined ||
+    query.maxPrice === undefined ||
+    query.minPrice <= query.maxPrice
+  );
+}, {
+  message: "minPrice must be less than or equal to maxPrice",
+  path: ["minPrice"],
 });
 
 export const listingIdParamSchema = z.coerce.number().int().positive();
 
 export const contactBodySchema = z.object({
   listingId: z.number().int().positive(),
-  message: z.string().trim().min(1).max(2000),
-  contactHint: z.string().trim().max(500).optional(),
+  message: z.string().trim().min(1).max(maxContactMessageLength),
+  contactHint: z.string().trim().max(maxContactHintLength).optional(),
 });
 
 export const sessionUserSchema = z.object({
