@@ -1,27 +1,9 @@
-﻿import type { Listing, ListingStatus } from "./types.js";
+﻿import type { Listing, ListingsQuery, ListingsSort, Pagination } from "@underground-artwork/shared";
+import { maxListingsPageSize } from "@underground-artwork/shared";
 import { seedListings } from "./seed-listings.js";
 
-export type ListingsSort = "newest" | "nearby" | "price";
-
-export type ListingsQuery = {
-  search?: string;
-  mediums: string[];
-  statuses: ListingStatus[];
-  minPrice?: number;
-  maxPrice?: number;
-  maxDistance?: number;
-  sort: ListingsSort;
-};
-
-export type Pagination = {
-  page: number;
-  pageSize: number;
-};
-
-const MAX_PAGE_SIZE = 50;
-
 export function clampPageSize(n: number): number {
-  return Math.min(Math.max(1, n), MAX_PAGE_SIZE);
+  return Math.min(Math.max(1, n), maxListingsPageSize);
 }
 
 export class InMemoryListingsRepository {

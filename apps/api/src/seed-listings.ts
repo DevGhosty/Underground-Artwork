@@ -1,4 +1,4 @@
-﻿import type { Listing } from "./types.js";
+﻿import type { Listing } from "@underground-artwork/shared";
 
 export const seedListings: Listing[] = [
   {

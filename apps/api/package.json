@@ -4,15 +4,16 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "npm run build -w @underground-artwork/shared",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "build": "npm run build -w @underground-artwork/shared && tsc -p tsconfig.json",
+    "typecheck": "npm run build -w @underground-artwork/shared && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@underground-artwork/shared": "*",
     "@hono/node-server": "^1.19.1",
-    "hono": "^4.11.4",
-    "zod": "^3.24.0"
+    "hono": "^4.11.4"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
