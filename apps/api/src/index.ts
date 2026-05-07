@@ -1,25 +1,103 @@
 import { serve } from "@hono/node-server";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { pathToFileURL } from "node:url";
 import {
   contactBodySchema,
   listingsQueryFromSearchParams,
+  maxContactRequestBytes,
   parseListingIdParam,
 } from "@underground-artwork/shared";
-import { InMemoryListingsRepository } from "./listings-repository.js";
+import {
+  InMemoryListingsRepository,
+  type ListingsRepository,
+} from "./listings-repository.js";
 import { rateLimitTake } from "./rate-limit.js";
 
 function parseOrigins(raw: string | undefined): string[] {
-  if (!raw?.trim()) return ["http://localhost:5173"];
-  return raw
+  if (!raw?.trim()) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("WEB_ORIGINS must be set in production");
+    }
+    return ["http://localhost:5173"];
+  }
+  const origins = raw
     .split(",")
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
+  return origins.map((origin) => {
+    const parsed = new URL(origin);
+    if (parsed.origin !== origin.replace(/\/$/, "")) {
+      throw new Error(`WEB_ORIGINS entries must be exact origins: ${origin}`);
+    }
+    return parsed.origin;
+  });
 }
 
-export function createApp(repo = new InMemoryListingsRepository()) {
+function isJsonRequest(c: Context): boolean {
+  return (c.req.header("content-type") ?? "").toLowerCase().includes("application/json");
+}
+
+function readContentLength(c: Context): number | null {
+  const raw = c.req.header("content-length");
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+async function readBoundedJson(c: Context): Promise<
+  | { ok: true; body: unknown }
+  | { ok: false; status: 400 | 413 | 415; code: string; message: string }
+> {
+  if (!isJsonRequest(c)) {
+    return {
+      ok: false,
+      status: 415,
+      code: "unsupported_media_type",
+      message: "Content-Type must be application/json",
+    };
+  }
+
+  const contentLength = readContentLength(c);
+  if (contentLength !== null && contentLength > maxContactRequestBytes) {
+    return {
+      ok: false,
+      status: 413,
+      code: "payload_too_large",
+      message: "Request body is too large",
+    };
+  }
+
+  const rawBody = await c.req.text();
+  if (new TextEncoder().encode(rawBody).length > maxContactRequestBytes) {
+    return {
+      ok: false,
+      status: 413,
+      code: "payload_too_large",
+      message: "Request body is too large",
+    };
+  }
+
+  try {
+    return { ok: true, body: JSON.parse(rawBody) };
+  } catch {
+    return { ok: false, status: 400, code: "bad_request", message: "Invalid JSON body" };
+  }
+}
+
+function readClientRateLimitKey(c: Context): string {
+  if (process.env.TRUST_PROXY !== "true") return "direct";
+  const forwardedFor = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
+  return (
+    c.req.header("cf-connecting-ip")?.trim() ??
+    c.req.header("x-real-ip")?.trim() ??
+    forwardedFor ??
+    "unknown"
+  );
+}
+
+export function createApp(repo: ListingsRepository = new InMemoryListingsRepository()) {
   const app = new Hono();
 
   app.use("*", logger());
@@ -96,9 +174,8 @@ export function createApp(repo = new InMemoryListingsRepository()) {
   });
 
   app.post("/contact", async (c) => {
-    const xf = c.req.header("x-forwarded-for");
-    const ip = (xf?.split(",")[0] ?? c.req.header("cf-connecting-ip") ?? "unknown").trim();
-    const limited = rateLimitTake(`contact:${ip}`, 10, 60_000);
+    const clientKey = readClientRateLimitKey(c);
+    const limited = rateLimitTake(`contact:${clientKey}`, 10, 60_000);
     if (!limited.ok) {
       c.header("Retry-After", String(limited.retryAfterSec));
       return c.json(
@@ -107,17 +184,15 @@ export function createApp(repo = new InMemoryListingsRepository()) {
       );
     }
 
-    let body: unknown;
-    try {
-      body = await c.req.json();
-    } catch {
+    const body = await readBoundedJson(c);
+    if (!body.ok) {
       return c.json(
-        { error: { code: "bad_request", message: "Invalid JSON body" } },
-        400,
+        { error: { code: body.code, message: body.message } },
+        body.status,
       );
     }
 
-    const parsed = contactBodySchema.safeParse(body);
+    const parsed = contactBodySchema.safeParse(body.body);
     if (!parsed.success) {
       return c.json(
         {
@@ -131,6 +206,19 @@ export function createApp(repo = new InMemoryListingsRepository()) {
       );
     }
 
+    const listingLimited = rateLimitTake(
+      `contact:${clientKey}:listing:${parsed.data.listingId}`,
+      3,
+      60_000,
+    );
+    if (!listingLimited.ok) {
+      c.header("Retry-After", String(listingLimited.retryAfterSec));
+      return c.json(
+        { error: { code: "rate_limit", message: "Too many requests for this listing" } },
+        429,
+      );
+    }
+
     const listing = repo.findById(parsed.data.listingId);
     if (!listing) {
       return c.json(
@@ -141,7 +229,7 @@ export function createApp(repo = new InMemoryListingsRepository()) {
 
     console.info("[contact stub]", {
       listingId: parsed.data.listingId,
-      contactHint: parsed.data.contactHint,
+      hasContactHint: Boolean(parsed.data.contactHint),
       messageLen: parsed.data.message.length,
     });
 

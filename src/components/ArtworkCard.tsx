@@ -1,4 +1,5 @@
 import { Heart } from 'lucide-react';
+import type { KeyboardEvent } from 'react';
 import { StatusStamp } from './StatusStamp';
 import type { Listing } from '../types';
 
@@ -10,12 +11,25 @@ type ArtworkCardProps = {
 };
 
 export function ArtworkCard({ isSelected, listing, onSaveToggle, onSelect }: ArtworkCardProps) {
+  function selectFromKeyboard(event: KeyboardEvent<HTMLElement>) {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onSelect(listing.id);
+    }
+  }
+
   return (
     <article
+      aria-label={`View ${listing.title} by ${listing.artist}`}
+      aria-pressed={isSelected}
       className={`art-card art-card-${listing.size} accent-${listing.accent} ${
         isSelected ? 'is-selected' : ''
       }`}
       onClick={() => onSelect(listing.id)}
+      onKeyDown={selectFromKeyboard}
+      role="button"
+      tabIndex={0}
     >
       <button
         className={`save-button ${listing.saved ? 'is-saved' : ''}`}

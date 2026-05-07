@@ -68,7 +68,7 @@ test("POST /contact rate limits repeated requests", async () => {
     }),
   };
 
-  for (let i = 0; i < 10; i += 1) {
+  for (let i = 0; i < 3; i += 1) {
     const response = await app.request("/contact", request);
     assert.equal(response.status, 201);
   }

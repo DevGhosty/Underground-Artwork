@@ -2,11 +2,18 @@
 import { maxListingsPageSize } from "@underground-artwork/shared";
 import { seedListings } from "./seed-listings.js";
 
+export type ListingPage = { items: Listing[]; total: number };
+
+export interface ListingsRepository {
+  findById(id: number): Listing | undefined;
+  findPage(query: ListingsQuery, pagination: Pagination): ListingPage;
+}
+
 export function clampPageSize(n: number): number {
   return Math.min(Math.max(1, n), maxListingsPageSize);
 }
 
-export class InMemoryListingsRepository {
+export class InMemoryListingsRepository implements ListingsRepository {
   private listings: Listing[];
 
   constructor(initial?: Listing[]) {
@@ -18,7 +25,7 @@ export class InMemoryListingsRepository {
     return row ? structuredClone(row) : undefined;
   }
 
-  findPage(query: ListingsQuery, pagination: Pagination): { items: Listing[]; total: number } {
+  findPage(query: ListingsQuery, pagination: Pagination): ListingPage {
     let rows = this.filterRows(query);
     rows = this.sortRows(rows, query.sort);
     const total = rows.length;

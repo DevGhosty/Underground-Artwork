@@ -11,14 +11,17 @@ import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 're
 import type { ListingCategory, ListingStatus, ListingsSort } from '@underground-artwork/shared';
 import { AccountPage } from './components/AccountPage';
 import { ArtworkCard } from './components/ArtworkCard';
+import { ContactSellerDialog } from './components/ContactSellerDialog';
 import { FilterRail } from './components/FilterRail';
 import { ListingDetail } from './components/ListingDetail';
 import { MapPanel } from './components/MapPanel';
+import { SavedPage } from './components/SavedPage';
+import { SellPage } from './components/SellPage';
 import { SignInPage } from './components/SignInPage';
 import { listings as seedListings } from './data/listings';
 import { fetchListings } from './lib/api';
 import { clearStoredSession, readStoredSession, storeSession } from './lib/session';
-import type { PriceBand, SessionUser } from './types';
+import type { Listing, PriceBand, SessionUser } from './types';
 
 const mediums = ['Print', 'Painting', 'Drawing', 'Mixed Media', 'Ceramic', 'Textile'];
 const statuses: ListingStatus[] = [...listingStatusValues];
@@ -89,6 +92,13 @@ export default function App() {
         element={<SignInPage currentUser={currentUser} onSignIn={signIn} />}
       />
       <Route
+        path="/saved"
+        element={
+          <SavedPage savedOverrides={savedOverrides} setSavedOverrides={setSavedOverrides} />
+        }
+      />
+      <Route path="/sell" element={<SellPage currentUser={currentUser} />} />
+      <Route
         path="/account"
         element={<AccountPage currentUser={currentUser} onSignOut={signOut} />}
       />
@@ -100,6 +110,7 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
   const navigate = useNavigate();
   const { listingId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [contactListing, setContactListing] = useState<Listing | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const search = searchParams.get('search') ?? '';
   const selectedMediums = searchParams.getAll('medium').filter((medium) => mediums.includes(medium));
@@ -273,11 +284,11 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
           <Link className="active" to="/">
             Browse
           </Link>
-          <a href="#sell">Sell</a>
-          <a className="saved-link" href="#saved">
+          <Link to="/sell">Sell</Link>
+          <Link className="saved-link" to="/saved">
             <Heart size={18} aria-hidden="true" />
             Saved
-          </a>
+          </Link>
           <Link className="sign-in" to={currentUser ? '/account' : '/signin'}>
             {currentUser ? currentUser.role : 'Sign in'}
           </Link>
@@ -286,6 +297,8 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
 
       <main className="browse-shell" id="browse">
         <button
+          aria-controls="filter-panel"
+          aria-expanded={showMobileFilters}
           className="mobile-filter-button"
           type="button"
           onClick={() => setShowMobileFilters((current) => !current)}
@@ -294,7 +307,7 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
           Filters
         </button>
 
-        <aside className={`filter-column ${showMobileFilters ? 'is-open' : ''}`}>
+        <aside id="filter-panel" className={`filter-column ${showMobileFilters ? 'is-open' : ''}`}>
           <FilterRail
             distance={distance}
             mediums={mediums}
@@ -401,10 +414,22 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
         </section>
 
         <aside className="detail-column" aria-label="Selected artwork">
-          <MapPanel listings={listings} selectedListing={selectedListing} />
-          <ListingDetail listing={selectedListing} onSaveToggle={toggleSaved} />
+          <MapPanel
+            listings={listings}
+            onListingSelect={selectListing}
+            selectedListing={selectedListing}
+          />
+          <ListingDetail
+            listing={selectedListing}
+            onContactClick={setContactListing}
+            onSaveToggle={toggleSaved}
+          />
         </aside>
       </main>
+
+      {contactListing && (
+        <ContactSellerDialog listing={contactListing} onClose={() => setContactListing(null)} />
+      )}
     </div>
   );
 }
