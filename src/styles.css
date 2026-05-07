@@ -892,6 +892,37 @@ input[type="range"] {
   box-shadow: var(--shadow);
 }
 
+.detail-message {
+  display: grid;
+  gap: 12px;
+  margin: -28px 14px 24px;
+  padding: 28px 24px;
+  background: var(--paper-warm);
+  border: 1px dashed var(--line-strong);
+  border-radius: 7px;
+  box-shadow: var(--shadow);
+}
+
+.detail-message svg {
+  color: var(--red);
+}
+
+.detail-message h2,
+.detail-message p {
+  margin: 0;
+}
+
+.detail-message h2 {
+  font-family: Impact, "Arial Black", sans-serif;
+  font-size: 2.4rem;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.detail-message p {
+  color: var(--muted);
+}
+
 .listing-detail::before,
 .listing-detail::after {
   position: absolute;

@@ -19,7 +19,7 @@ import { SavedPage } from './components/SavedPage';
 import { SellPage } from './components/SellPage';
 import { SignInPage } from './components/SignInPage';
 import { listings as seedListings } from './data/listings';
-import { fetchListings } from './lib/api';
+import { fetchListing, fetchListings } from './lib/api';
 import { clearStoredSession, readStoredSession, storeSession } from './lib/session';
 import type { Listing, PriceBand, SessionUser } from './types';
 
@@ -158,11 +158,24 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
   );
 
   const routeListingId = readListingId(listingId);
-  const selectedListing =
-    listings.find((listing) => listing.id === routeListingId) ?? listings[0] ?? seedListings[0];
+  const listingFromCurrentPage =
+    routeListingId === null
+      ? undefined
+      : listings.find((listing) => listing.id === routeListingId);
+  const listingDetailQuery = useQuery({
+    queryKey: ['listing', routeListingId],
+    queryFn: () => fetchListing(routeListingId ?? 0),
+    enabled: routeListingId !== null && listingFromCurrentPage === undefined,
+  });
+  const routeListing = listingDetailQuery.data
+    ? applySavedOverride(listingDetailQuery.data, savedOverrides)
+    : undefined;
+  const selectedListing = listingFromCurrentPage ?? routeListing ?? listings[0] ?? seedListings[0];
+  const needsRouteDetail = routeListingId !== null && listingFromCurrentPage === undefined;
 
   function toggleSaved(id: number) {
-    const listing = listings.find((item) => item.id === id);
+    const listing =
+      selectedListing.id === id ? selectedListing : listings.find((item) => item.id === id);
     if (!listing) return;
     setSavedOverrides((current) => ({ ...current, [id]: !listing.saved }));
   }
@@ -419,11 +432,35 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
             onListingSelect={selectListing}
             selectedListing={selectedListing}
           />
-          <ListingDetail
-            listing={selectedListing}
-            onContactClick={setContactListing}
-            onSaveToggle={toggleSaved}
-          />
+          {needsRouteDetail && listingDetailQuery.isLoading ? (
+            <div className="detail-message">
+              <MapPin size={24} aria-hidden="true" />
+              <h2>Loading this listing...</h2>
+              <p>Opening the artwork from its direct link.</p>
+            </div>
+          ) : needsRouteDetail && listingDetailQuery.isError ? (
+            <div className="detail-message">
+              <MapPin size={24} aria-hidden="true" />
+              <h2>Listing not found.</h2>
+              <p>The piece may have moved, sold, or left the local wall.</p>
+              <button
+                className="contact-button"
+                type="button"
+                onClick={() => listingDetailQuery.refetch()}
+              >
+                Retry listing
+              </button>
+              <Link className="back-link" to="/">
+                Back to browse
+              </Link>
+            </div>
+          ) : (
+            <ListingDetail
+              listing={selectedListing}
+              onContactClick={setContactListing}
+              onSaveToggle={toggleSaved}
+            />
+          )}
         </aside>
       </main>
 
@@ -432,6 +469,13 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
       )}
     </div>
   );
+}
+
+function applySavedOverride(listing: Listing, savedOverrides: Record<number, boolean>): Listing {
+  return {
+    ...listing,
+    saved: savedOverrides[listing.id] ?? listing.saved,
+  };
 }
 
 function readStatuses(searchParams: URLSearchParams): ListingStatus[] {

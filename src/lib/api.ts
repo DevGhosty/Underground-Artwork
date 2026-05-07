@@ -1,4 +1,4 @@
-import { listingListResponseSchema } from '@underground-artwork/shared';
+import { listingListResponseSchema, listingResponseSchema } from '@underground-artwork/shared';
 import type {
   Listing,
   ListingCategory,
@@ -74,6 +74,13 @@ function resolveListingImages(listings: Listing[]): Listing[] {
   }));
 }
 
+function resolveListingImage(listing: Listing): Listing {
+  return {
+    ...listing,
+    image: artworkByApiPath[listing.image] ?? listing.image,
+  };
+}
+
 export async function fetchListings({
   search,
   mediums,
@@ -118,6 +125,21 @@ export async function fetchListings({
   }
 
   return resolveListingImages(parsed.data.data);
+}
+
+export async function fetchListing(id: number): Promise<Listing> {
+  const response = await fetch(`${getApiBaseUrl()}/listings/${id}`);
+  if (!response.ok) {
+    throw new ApiError('Could not load that artwork listing.', response.status);
+  }
+
+  const payload: unknown = await response.json();
+  const parsed = listingResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiError('The listing response was not in the expected format.');
+  }
+
+  return resolveListingImage(parsed.data.data);
 }
 
 export async function sendContactRequest({
