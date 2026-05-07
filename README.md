@@ -68,22 +68,26 @@ npm run build
 
 ## Branch Workflow
 
-`main` is the stable branch for demos, submissions, and release-ready work.
+`main` is reserved for **solid V1** (stable demo, agreed scope). **Do not merge or
+push to `main` until the team declares V1 ready.** Until then, integrate on
+`development` only.
+
 `development` is the shared integration branch for day-to-day collaboration.
 
 Team workflow:
 
-1. Start new work from `development`.
-2. Create a short-lived feature branch, such as `feature/listings`,
-   `feature/auth`, `feature/schema`, or `feature/search-map`.
-3. Open a pull request from the feature branch into `development`.
-4. Merge `development` into `main` only when the app is stable for a milestone.
+1. `git checkout development` and pull latest.
+2. Create a **feature branch per piece of work**: `feature/listings`,
+   `feature/api-scaffold`, `feature/auth`, etc.
+3. Open a pull request from your feature branch **into `development`**.
+4. Merge `development` into `main` **only when promoting solid V1**; afterward
+   keep using `feature/*` → `development` for later releases.
 
 Recommended repository settings:
 
-- Protect `main` from direct pushes.
-- Require pull requests before merging into `main`.
-- Require at least one review before merging into `main`.
+- Protect `main` from direct pushes; restrict merges until V1.
+- Require pull requests into `development` (and into `main` when V1 gate opens).
+- Require at least one review where practical.
 - Use squash merges to keep history readable.
 - Optionally protect `development` with pull requests while allowing admins to
   recover quickly if needed.

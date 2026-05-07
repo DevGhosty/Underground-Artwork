@@ -74,6 +74,18 @@ Avoid two disconnected repos for a class project. Suggested structure **inside**
 
 Root `package.json` can use **npm workspaces** so `npm run dev` starts API + web via `concurrently` or similar.
 
+## Git workflow and release policy
+
+- **`main` is frozen** until the team agrees there is a **solid V1** (stable app,
+  agreed scope). No merges or direct pushes to `main` before that gate.
+- **All implementation** follows the plan’s milestones using **short-lived
+  `feature/*` branches** cut from latest **`development`**, with PRs into
+  **`development` only** until V1.
+- After V1, keep the same pattern: **`feature/*` → `development`**; promote
+  **`development` → `main`** only for deliberate releases.
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for branch naming and PR conventions.
+
 ## API shape (design now, DB later)
 
 Define a **narrow, stable HTTP contract** that a future SQL repository can implement without changing the client:
