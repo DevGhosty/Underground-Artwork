@@ -1,13 +1,15 @@
-import type { ListingStatus } from '../types';
+import type { ListingStatus, PriceBand } from '../types';
 
 type FilterRailProps = {
   distance: number;
   mediums: string[];
   selectedMediums: string[];
-  selectedStatuses: string[];
+  selectedPrice: PriceBand;
+  selectedStatuses: ListingStatus[];
   statuses: readonly ListingStatus[];
   onDistanceChange: (distance: number) => void;
   onMediumToggle: (medium: string) => void;
+  onPriceChange: (price: PriceBand) => void;
   onReset: () => void;
   onStatusToggle: (status: ListingStatus) => void;
 };
@@ -27,14 +29,24 @@ const statusCounts: Record<ListingStatus, number> = {
   Sold: 12,
 };
 
+const priceOptions: { label: string; value: PriceBand }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Under $200', value: 'under-200' },
+  { label: '$200 - $500', value: '200-500' },
+  { label: '$500 - $1k', value: '500-1000' },
+  { label: '$1k+', value: '1000-plus' },
+];
+
 export function FilterRail({
   distance,
   mediums,
   selectedMediums,
+  selectedPrice,
   selectedStatuses,
   statuses,
   onDistanceChange,
   onMediumToggle,
+  onPriceChange,
   onReset,
   onStatusToggle,
 }: FilterRailProps) {
@@ -97,9 +109,14 @@ export function FilterRail({
           <span>$ 2,000</span>
         </div>
         <div className="price-chips">
-          {['All', 'Under $200', '$200 - $500', '$500 - $1k', '$1k+'].map((price) => (
-            <button key={price} type="button">
-              {price}
+          {priceOptions.map((price) => (
+            <button
+              className={price.value === selectedPrice ? 'is-active' : undefined}
+              key={price.value}
+              onClick={() => onPriceChange(price.value)}
+              type="button"
+            >
+              {price.label}
             </button>
           ))}
         </div>

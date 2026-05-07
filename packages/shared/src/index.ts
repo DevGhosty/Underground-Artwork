@@ -3,6 +3,7 @@ import { z } from "zod";
 export const listingStatusValues = ["Available", "Pending", "Sold"] as const;
 export const listingAccentValues = ["red", "blue", "yellow", "teal", "magenta", "green"] as const;
 export const listingSizeValues = ["standard", "tall", "wide"] as const;
+export const listingCategoryValues = ["prints", "painting", "drawing", "mixed-media", "objects"] as const;
 export const listingsSortValues = ["newest", "nearby", "price"] as const;
 
 export const maxListingsPageSize = 50;
@@ -10,6 +11,7 @@ export const maxListingsPageSize = 50;
 export const listingStatusSchema = z.enum(listingStatusValues);
 export const listingAccentSchema = z.enum(listingAccentValues);
 export const listingSizeSchema = z.enum(listingSizeValues);
+export const listingCategorySchema = z.enum(listingCategoryValues);
 export const listingsSortSchema = z.enum(listingsSortValues);
 
 export const listingSchema = z.object({
@@ -19,6 +21,7 @@ export const listingSchema = z.object({
   price: z.number().nonnegative(),
   status: listingStatusSchema,
   medium: z.string().min(1),
+  category: listingCategorySchema,
   dimensions: z.string().min(1),
   neighborhood: z.string().min(1),
   borough: z.string().min(1),
@@ -66,6 +69,7 @@ export const listingsQuerySchema = z.object({
   maxDistance: z.coerce.number().optional(),
   medium: z.array(z.string().min(1)).default([]),
   status: z.array(listingStatusSchema).default([...listingStatusValues]),
+  category: listingCategorySchema.optional(),
 });
 
 export const listingIdParamSchema = z.coerce.number().int().positive();
@@ -79,6 +83,7 @@ export const contactBodySchema = z.object({
 export type ListingStatus = z.infer<typeof listingStatusSchema>;
 export type ListingAccent = z.infer<typeof listingAccentSchema>;
 export type ListingSize = z.infer<typeof listingSizeSchema>;
+export type ListingCategory = z.infer<typeof listingCategorySchema>;
 export type ListingsSort = z.infer<typeof listingsSortSchema>;
 export type Listing = z.infer<typeof listingSchema>;
 export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
@@ -95,6 +100,7 @@ export type ListingsQuery = {
   minPrice?: number;
   maxPrice?: number;
   maxDistance?: number;
+  category?: ListingCategory;
   sort: ListingsSort;
 };
 
@@ -117,6 +123,7 @@ export function listingsQueryFromSearchParams(sp: URLSearchParams) {
     maxDistance: sp.get("maxDistance") ?? undefined,
     medium,
     status: statusRaw.length > 0 ? statusRaw : undefined,
+    category: sp.get("category") ?? undefined,
   });
 }
 
