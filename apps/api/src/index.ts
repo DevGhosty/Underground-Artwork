@@ -1,7 +1,8 @@
-﻿import { serve } from "@hono/node-server";
+import { serve } from "@hono/node-server";
 import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { pathToFileURL } from "node:url";
 import {
   contactBodySchema,
   listingsQueryFromSearchParams,
@@ -238,9 +239,13 @@ export function createApp(repo: ListingsRepository = new InMemoryListingsReposit
   return app;
 }
 
-const app = createApp();
+function startServer() {
+  const port = Number(process.env.PORT) || 3000;
+  serve({ fetch: createApp().fetch, port }, (info) => {
+    console.log(`API listening on http://127.0.0.1:${info.port}`);
+  });
+}
 
-const port = Number(process.env.PORT) || 3000;
-serve({ fetch: app.fetch, port }, (info) => {
-  console.log(`API listening on http://127.0.0.1:${info.port}`);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  startServer();
+}
