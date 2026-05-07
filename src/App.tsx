@@ -1,56 +1,60 @@
+import { useQuery } from '@tanstack/react-query';
 import { Heart, LayoutGrid, ListFilter, MapPin, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import type { ListingStatus, ListingsSort } from '@underground-artwork/shared';
 import { ArtworkCard } from './components/ArtworkCard';
 import { FilterRail } from './components/FilterRail';
 import { ListingDetail } from './components/ListingDetail';
 import { MapPanel } from './components/MapPanel';
 import { listings as seedListings } from './data/listings';
-import type { Listing } from './types';
+import { fetchListings } from './lib/api';
 
 const mediums = ['Print', 'Painting', 'Drawing', 'Mixed Media', 'Ceramic', 'Textile'];
-const statuses = ['Available', 'Pending', 'Sold'] as const;
+const statuses: ListingStatus[] = ['Available', 'Pending', 'Sold'];
 
 export default function App() {
-  const [listings, setListings] = useState<Listing[]>(seedListings);
   const [selectedId, setSelectedId] = useState(seedListings[0].id);
   const [search, setSearch] = useState('');
   const [selectedMediums, setSelectedMediums] = useState<string[]>([]);
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
+  const [selectedStatuses, setSelectedStatuses] = useState<ListingStatus[]>([
     'Available',
     'Pending',
     'Sold',
   ]);
   const [distance, setDistance] = useState(25);
+  const [sort, setSort] = useState<ListingsSort>('newest');
+  const [savedOverrides, setSavedOverrides] = useState<Record<number, boolean>>({});
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  const filteredListings = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  const listingsQuery = useQuery({
+    queryKey: ['listings', { search, selectedMediums, selectedStatuses, distance, sort }],
+    queryFn: () =>
+      fetchListings({
+        search,
+        mediums: selectedMediums,
+        statuses: selectedStatuses,
+        maxDistance: distance,
+        sort,
+      }),
+  });
 
-    return listings.filter((listing) => {
-      const matchesSearch =
-        !query ||
-        [listing.title, listing.artist, listing.medium, listing.neighborhood, listing.borough]
-          .join(' ')
-          .toLowerCase()
-          .includes(query);
-      const matchesMedium =
-        selectedMediums.length === 0 ||
-        selectedMediums.some((medium) => listing.medium.toLowerCase().includes(medium.toLowerCase()));
-      const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(listing.status);
-
-      return matchesSearch && matchesMedium && matchesStatus && listing.distance <= distance;
-    });
-  }, [distance, listings, search, selectedMediums, selectedStatuses]);
+  const apiListings = listingsQuery.data ?? [];
+  const listings = useMemo(
+    () =>
+      apiListings.map((listing) => ({
+        ...listing,
+        saved: savedOverrides[listing.id] ?? listing.saved,
+      })),
+    [apiListings, savedOverrides],
+  );
 
   const selectedListing =
-    listings.find((listing) => listing.id === selectedId) ?? filteredListings[0] ?? listings[0];
+    listings.find((listing) => listing.id === selectedId) ?? listings[0] ?? seedListings[0];
 
   function toggleSaved(id: number) {
-    setListings((currentListings) =>
-      currentListings.map((listing) =>
-        listing.id === id ? { ...listing, saved: !listing.saved } : listing,
-      ),
-    );
+    const listing = listings.find((item) => item.id === id);
+    if (!listing) return;
+    setSavedOverrides((current) => ({ ...current, [id]: !listing.saved }));
   }
 
   function toggleMedium(medium: string) {
@@ -61,7 +65,7 @@ export default function App() {
     );
   }
 
-  function toggleStatus(status: string) {
+  function toggleStatus(status: ListingStatus) {
     setSelectedStatuses((currentStatuses) =>
       currentStatuses.includes(status)
         ? currentStatuses.filter((item) => item !== status)
@@ -129,6 +133,7 @@ export default function App() {
               setSelectedMediums([]);
               setSelectedStatuses(['Available', 'Pending', 'Sold']);
               setDistance(25);
+              setSort('newest');
             }}
             onStatusToggle={toggleStatus}
           />
@@ -140,14 +145,17 @@ export default function App() {
               <p className="section-note">Support local artists.</p>
               <h1>Nearby Artwork</h1>
               <p>
-                {filteredListings.length} local pieces within{' '}
+                {listings.length} local pieces within{' '}
                 <span className="linkish">{distance} miles</span>
               </p>
             </div>
             <div className="gallery-actions">
               <label>
                 Sort:
-                <select defaultValue="newest">
+                <select
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value as ListingsSort)}
+                >
                   <option value="newest">Newest</option>
                   <option value="nearby">Nearby</option>
                   <option value="price">Price</option>
@@ -171,19 +179,44 @@ export default function App() {
             ))}
           </div>
 
-          <div className="artwork-grid">
-            {filteredListings.map((listing) => (
-              <ArtworkCard
-                isSelected={listing.id === selectedListing.id}
-                key={listing.id}
-                listing={listing}
-                onSaveToggle={toggleSaved}
-                onSelect={setSelectedId}
-              />
-            ))}
-          </div>
+          {listingsQuery.isLoading && (
+            <div className="empty-state">
+              <MapPin size={24} aria-hidden="true" />
+              <h2>Loading nearby artwork...</h2>
+              <p>Pulling the latest wall from the local marketplace.</p>
+            </div>
+          )}
 
-          {filteredListings.length === 0 && (
+          {listingsQuery.isError && (
+            <div className="empty-state">
+              <MapPin size={24} aria-hidden="true" />
+              <h2>Could not load nearby artwork.</h2>
+              <p>Make sure the API server is running, then try again.</p>
+              <button
+                className="contact-button"
+                type="button"
+                onClick={() => listingsQuery.refetch()}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {!listingsQuery.isLoading && !listingsQuery.isError && (
+            <div className="artwork-grid">
+              {listings.map((listing) => (
+                <ArtworkCard
+                  isSelected={listing.id === selectedListing.id}
+                  key={listing.id}
+                  listing={listing}
+                  onSaveToggle={toggleSaved}
+                  onSelect={setSelectedId}
+                />
+              ))}
+            </div>
+          )}
+
+          {!listingsQuery.isLoading && !listingsQuery.isError && listings.length === 0 && (
             <div className="empty-state">
               <MapPin size={24} aria-hidden="true" />
               <h2>No nearby pieces match those filters.</h2>
