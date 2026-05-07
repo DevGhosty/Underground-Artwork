@@ -286,6 +286,8 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
 
       <main className="browse-shell" id="browse">
         <button
+          aria-controls="filter-panel"
+          aria-expanded={showMobileFilters}
           className="mobile-filter-button"
           type="button"
           onClick={() => setShowMobileFilters((current) => !current)}
@@ -294,7 +296,7 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
           Filters
         </button>
 
-        <aside className={`filter-column ${showMobileFilters ? 'is-open' : ''}`}>
+        <aside id="filter-panel" className={`filter-column ${showMobileFilters ? 'is-open' : ''}`}>
           <FilterRail
             distance={distance}
             mediums={mediums}
@@ -401,7 +403,11 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
         </section>
 
         <aside className="detail-column" aria-label="Selected artwork">
-          <MapPanel listings={listings} selectedListing={selectedListing} />
+          <MapPanel
+            listings={listings}
+            onListingSelect={selectListing}
+            selectedListing={selectedListing}
+          />
           <ListingDetail listing={selectedListing} onSaveToggle={toggleSaved} />
         </aside>
       </main>
