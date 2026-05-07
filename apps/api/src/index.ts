@@ -20,6 +20,16 @@ function parseOrigins(raw: string | undefined): string[] {
 
 const app = new Hono();
 const repo = new InMemoryListingsRepository();
+const maxContactRequestBytes = 16_384;
+
+function readContactRateLimitKey(c: { req: { header: (name: string) => string | undefined } }) {
+  if (process.env.TRUST_PROXY === "1") {
+    const xf = c.req.header("x-forwarded-for");
+    const hop = xf?.split(",")[0]?.trim();
+    if (hop) return hop;
+  }
+  return (c.req.header("cf-connecting-ip") ?? "unknown").trim();
+}
 
 app.use("*", logger());
 
@@ -95,8 +105,7 @@ app.get("/listings/:id", (c) => {
 });
 
 app.post("/contact", async (c) => {
-  const xf = c.req.header("x-forwarded-for");
-  const ip = (xf?.split(",")[0] ?? c.req.header("cf-connecting-ip") ?? "unknown").trim();
+  const ip = readContactRateLimitKey(c);
   const limited = rateLimitTake(`contact:${ip}`, 10, 60_000);
   if (!limited.ok) {
     c.header("Retry-After", String(limited.retryAfterSec));
@@ -106,9 +115,30 @@ app.post("/contact", async (c) => {
     );
   }
 
+  const contentType = c.req.header("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    return c.json(
+      {
+        error: {
+          code: "unsupported_media_type",
+          message: "Content-Type must be application/json",
+        },
+      },
+      415,
+    );
+  }
+
+  const raw = await c.req.text();
+  if (new TextEncoder().encode(raw).length > maxContactRequestBytes) {
+    return c.json(
+      { error: { code: "payload_too_large", message: "Request body too large" } },
+      413,
+    );
+  }
+
   let body: unknown;
   try {
-    body = await c.req.json();
+    body = JSON.parse(raw);
   } catch {
     return c.json(
       { error: { code: "bad_request", message: "Invalid JSON body" } },

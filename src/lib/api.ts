@@ -1,5 +1,11 @@
-import { listingListResponseSchema } from '@underground-artwork/shared';
+import {
+  apiErrorResponseSchema,
+  contactBodySchema,
+  listingListResponseSchema,
+  listingResponseSchema,
+} from '@underground-artwork/shared';
 import type {
+  ContactBody,
   Listing,
   ListingCategory,
   ListingStatus,
@@ -68,6 +74,26 @@ function resolveListingImages(listings: Listing[]): Listing[] {
   }));
 }
 
+function resolveListingImage(listing: Listing): Listing {
+  return {
+    ...listing,
+    image: artworkByApiPath[listing.image] ?? listing.image,
+  };
+}
+
+async function parseErrorMessage(response: Response): Promise<string> {
+  try {
+    const payload: unknown = await response.json();
+    const parsed = apiErrorResponseSchema.safeParse(payload);
+    if (parsed.success) {
+      return parsed.data.error.message;
+    }
+  } catch {
+    /* ignore */
+  }
+  return response.statusText || 'Request failed';
+}
+
 export async function fetchListings({
   search,
   mediums,
@@ -102,7 +128,7 @@ export async function fetchListings({
 
   const response = await fetch(`${getApiBaseUrl()}/listings?${params.toString()}`);
   if (!response.ok) {
-    throw new ApiError('Could not load artwork listings.', response.status);
+    throw new ApiError(await parseErrorMessage(response), response.status);
   }
 
   const payload: unknown = await response.json();
@@ -112,4 +138,36 @@ export async function fetchListings({
   }
 
   return resolveListingImages(parsed.data.data);
+}
+
+export async function fetchListingById(id: number): Promise<Listing> {
+  const response = await fetch(`${getApiBaseUrl()}/listings/${id}`);
+  if (!response.ok) {
+    throw new ApiError(await parseErrorMessage(response), response.status);
+  }
+
+  const payload: unknown = await response.json();
+  const parsed = listingResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiError('The listing response was not in the expected format.');
+  }
+
+  return resolveListingImage(parsed.data.data);
+}
+
+export async function sendContact(body: ContactBody): Promise<void> {
+  const validated = contactBodySchema.safeParse(body);
+  if (!validated.success) {
+    throw new ApiError('Please check your message and try again.');
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}/contact`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(validated.data),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(await parseErrorMessage(response), response.status);
+  }
 }

@@ -4,21 +4,33 @@ import {
   listingStatusValues,
   listingsSortValues,
 } from '@underground-artwork/shared';
-import { Heart, LayoutGrid, ListFilter, MapPin, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { LayoutGrid, ListFilter, MapPin } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  Link,
+  Route,
+  Routes,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import type { ListingCategory, ListingStatus, ListingsSort } from '@underground-artwork/shared';
 import { AccountPage } from './components/AccountPage';
 import { ArtworkCard } from './components/ArtworkCard';
+import { ContactSellerDialog } from './components/ContactSellerDialog';
 import { FilterRail } from './components/FilterRail';
 import { ListingDetail } from './components/ListingDetail';
 import { MapPanel } from './components/MapPanel';
+import { SavedPage } from './components/SavedPage';
+import { SellPage } from './components/SellPage';
 import { SignInPage } from './components/SignInPage';
+import { TopNav } from './components/TopNav';
 import { listings as seedListings } from './data/listings';
-import { fetchListings } from './lib/api';
+import { fetchListingById, fetchListings } from './lib/api';
+import { persistSavedToggles, loadSavedToggles } from './lib/saved-storage';
 import { clearStoredSession, readStoredSession, storeSession } from './lib/session';
-import type { PriceBand, SessionUser } from './types';
+import type { Listing, PriceBand, SessionUser } from './types';
 
 const mediums = ['Print', 'Painting', 'Drawing', 'Mixed Media', 'Ceramic', 'Textile'];
 const statuses: ListingStatus[] = [...listingStatusValues];
@@ -49,8 +61,14 @@ type BrowsePageProps = {
 };
 
 export default function App() {
-  const [savedOverrides, setSavedOverrides] = useState<Record<number, boolean>>({});
+  const [savedOverrides, setSavedOverrides] = useState<Record<number, boolean>>(() =>
+    loadSavedToggles(),
+  );
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(() => readStoredSession());
+
+  useEffect(() => {
+    persistSavedToggles(savedOverrides);
+  }, [savedOverrides]);
 
   function signIn(user: SessionUser) {
     storeSession(user);
@@ -92,6 +110,17 @@ export default function App() {
         path="/account"
         element={<AccountPage currentUser={currentUser} onSignOut={signOut} />}
       />
+      <Route
+        path="/saved"
+        element={
+          <SavedPage
+            currentUser={currentUser}
+            savedOverrides={savedOverrides}
+            setSavedOverrides={setSavedOverrides}
+          />
+        }
+      />
+      <Route path="/sell" element={<SellPage currentUser={currentUser} />} />
     </Routes>
   );
 }
@@ -101,6 +130,8 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
   const { listingId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [contactListing, setContactListing] = useState<Listing | null>(null);
+
   const search = searchParams.get('search') ?? '';
   const selectedMediums = searchParams.getAll('medium').filter((medium) => mediums.includes(medium));
   const selectedStatuses = readStatuses(searchParams);
@@ -147,13 +178,68 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
   );
 
   const routeListingId = readListingId(listingId);
+  const listingFromBatch =
+    routeListingId !== null ? apiListings.find((listing) => listing.id === routeListingId) : undefined;
+
+  const listingDetailQuery = useQuery({
+    queryKey: ['listing', routeListingId],
+    queryFn: () => fetchListingById(routeListingId!),
+    enabled:
+      routeListingId !== null &&
+      !listingsQuery.isLoading &&
+      listingFromBatch === undefined,
+  });
+
+  const fetchedListing = listingDetailQuery.data;
+
+  const browsingDefault = listings[0] ?? seedListings[0];
+
+  const resolvedFromRoute =
+    routeListingId === null
+      ? undefined
+      : listingFromBatch !== undefined
+        ? {
+            ...listingFromBatch,
+            saved: savedOverrides[listingFromBatch.id] ?? listingFromBatch.saved,
+          }
+        : fetchedListing !== undefined
+          ? {
+              ...fetchedListing,
+              saved: savedOverrides[fetchedListing.id] ?? fetchedListing.saved,
+            }
+          : undefined;
+
   const selectedListing =
-    listings.find((listing) => listing.id === routeListingId) ?? listings[0] ?? seedListings[0];
+    routeListingId === null ? browsingDefault : (resolvedFromRoute ?? browsingDefault);
+
+  const showDetailSpinner =
+    routeListingId !== null &&
+    resolvedFromRoute === undefined &&
+    (listingDetailQuery.isFetching || listingsQuery.isLoading);
+
+  const showDetailMissing =
+    routeListingId !== null &&
+    resolvedFromRoute === undefined &&
+    listingDetailQuery.isFetched &&
+    !listingDetailQuery.isFetching &&
+    listingDetailQuery.isError;
+
+  const galleryIndex = apiListings.findIndex((listing) => listing.id === selectedListing.id);
+  const detailPosition =
+    galleryIndex >= 0 ? { index: galleryIndex + 1, total: apiListings.length } : undefined;
+
+  const mapListings = listings.length > 0 ? listings : [selectedListing];
 
   function toggleSaved(id: number) {
-    const listing = listings.find((item) => item.id === id);
+    const fromGrid = listings.find((item) => item.id === id);
+    const fromFetch =
+      fetchedListing?.id === id
+        ? { ...fetchedListing, saved: savedOverrides[id] ?? fetchedListing.saved }
+        : undefined;
+    const listing = fromGrid ?? fromFetch;
     if (!listing) return;
-    setSavedOverrides((current) => ({ ...current, [id]: !listing.saved }));
+    const effectiveSaved = savedOverrides[id] ?? listing.saved;
+    setSavedOverrides((current) => ({ ...current, [id]: !effectiveSaved }));
   }
 
   function updateSearchParams(update: (next: URLSearchParams) => void) {
@@ -165,7 +251,7 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
   function updateSearch(value: string) {
     updateSearchParams((next) => {
       if (value.trim()) {
-        next.set('search', value);
+        next.set('search', value.trim());
       } else {
         next.delete('search');
       }
@@ -250,39 +336,13 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
 
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <Link className="brand-mark" to="/" aria-label="Underground Artwork home">
-          <span className="brand-stamp" aria-hidden="true" />
-          <span>
-            Underground
-            <strong>Artwork</strong>
-          </span>
-        </Link>
-
-        <label className="search-field">
-          <Search size={18} aria-hidden="true" />
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => updateSearch(event.target.value)}
-            placeholder="Search artwork, artist, medium, neighborhood..."
-          />
-        </label>
-
-        <nav className="nav-links" aria-label="Main navigation">
-          <Link className="active" to="/">
-            Browse
-          </Link>
-          <a href="#sell">Sell</a>
-          <a className="saved-link" href="#saved">
-            <Heart size={18} aria-hidden="true" />
-            Saved
-          </a>
-          <Link className="sign-in" to={currentUser ? '/account' : '/signin'}>
-            {currentUser ? currentUser.role : 'Sign in'}
-          </Link>
-        </nav>
-      </header>
+      <TopNav
+        active="browse"
+        currentUser={currentUser}
+        search={search}
+        showSearch
+        onSearchChange={updateSearch}
+      />
 
       <main className="browse-shell" id="browse">
         <button
@@ -401,10 +461,34 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
         </section>
 
         <aside className="detail-column" aria-label="Selected artwork">
-          <MapPanel listings={listings} selectedListing={selectedListing} />
-          <ListingDetail listing={selectedListing} onSaveToggle={toggleSaved} />
+          <MapPanel listings={mapListings} selectedListing={selectedListing} />
+          {showDetailSpinner && (
+            <article aria-busy="true" className="listing-detail listing-detail--loading">
+              <h2>Loading listing…</h2>
+              <p>Fetching artwork details for this link.</p>
+            </article>
+          )}
+          {showDetailMissing && (
+            <article className="listing-detail listing-detail--error">
+              <h2>Listing unavailable</h2>
+              <p>That ID is missing or hidden by filters. Adjust filters or return home.</p>
+              <Link className="contact-button" to="/">
+                Back to browse
+              </Link>
+            </article>
+          )}
+          {!showDetailSpinner && !showDetailMissing && (
+            <ListingDetail
+              detailPosition={detailPosition}
+              listing={selectedListing}
+              onContactClick={() => setContactListing(selectedListing)}
+              onSaveToggle={toggleSaved}
+            />
+          )}
         </aside>
       </main>
+
+      <ContactSellerDialog listing={contactListing} onClose={() => setContactListing(null)} />
     </div>
   );
 }

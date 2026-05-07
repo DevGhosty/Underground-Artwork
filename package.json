@@ -8,7 +8,8 @@
     "dev": "vite",
     "dev:api": "npm run dev -w @underground-artwork/api",
     "build": "npm run build -w @underground-artwork/shared && tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "smoke:http": "node scripts/smoke-http.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.9",

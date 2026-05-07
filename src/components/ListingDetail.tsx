@@ -1,16 +1,28 @@
 import { CalendarDays, Heart, ShieldCheck, Tag } from 'lucide-react';
-import { StatusStamp } from './StatusStamp';
+import { Link } from 'react-router-dom';
 import type { Listing } from '../types';
+import { StatusStamp } from './StatusStamp';
 
 type ListingDetailProps = {
   listing: Listing;
+  detailPosition?: { index: number; total: number };
+  onContactClick: () => void;
   onSaveToggle: (id: number) => void;
 };
 
-export function ListingDetail({ listing, onSaveToggle }: ListingDetailProps) {
+export function ListingDetail({
+  listing,
+  detailPosition,
+  onContactClick,
+  onSaveToggle,
+}: ListingDetailProps) {
+  const countLabel = detailPosition
+    ? `${String(detailPosition.index).padStart(2, '0')} / ${detailPosition.total}`
+    : `#${listing.id}`;
+
   return (
     <article className={`listing-detail accent-${listing.accent}`}>
-      <div className="detail-count">01 / 86</div>
+      <div className="detail-count">{countLabel}</div>
       <StatusStamp status={listing.status} />
       <button
         className={`detail-save ${listing.saved ? 'is-saved' : ''}`}
@@ -25,12 +37,13 @@ export function ListingDetail({ listing, onSaveToggle }: ListingDetailProps) {
         <img src={listing.image} alt={`${listing.title} by ${listing.artist}`} />
         <div>
           <h2>{listing.title}</h2>
-          <a href="#artist">{listing.artist}</a>
+          <Link to={`/?search=${encodeURIComponent(listing.artist)}`}>{listing.artist}</Link>
           <strong>${listing.price}</strong>
           <p>{listing.medium}</p>
           <p>{listing.dimensions}</p>
           <p>
-            {listing.neighborhood}, {listing.borough} <span>{listing.distance.toFixed(1)} mi</span>
+            {listing.neighborhood}, {listing.borough}{' '}
+            <span>{listing.distance.toFixed(1)} mi</span>
           </p>
         </div>
       </div>
@@ -43,15 +56,15 @@ export function ListingDetail({ listing, onSaveToggle }: ListingDetailProps) {
       <div className="detail-tags" aria-label="Listing details">
         <span>
           <CalendarDays size={16} aria-hidden="true" />
-          Listed May 12, 2024
+          Meet locally · verify in person
         </span>
         <span>
           <Tag size={16} aria-hidden="true" />
-          Signed
+          {listing.medium}
         </span>
       </div>
 
-      <button className="contact-button" type="button">
+      <button className="contact-button" type="button" onClick={onContactClick}>
         Contact seller
         <span aria-hidden="true">→</span>
       </button>
