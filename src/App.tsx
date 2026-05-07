@@ -478,12 +478,14 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
             </article>
           )}
           {!showDetailSpinner && !showDetailMissing && (
-            <ListingDetail
-              detailPosition={detailPosition}
-              listing={selectedListing}
-              onContactClick={() => setContactListing(selectedListing)}
-              onSaveToggle={toggleSaved}
-            />
+            <div key={selectedListing.id} className="listing-detail-shell">
+              <ListingDetail
+                detailPosition={detailPosition}
+                listing={selectedListing}
+                onContactClick={() => setContactListing(selectedListing)}
+                onSaveToggle={toggleSaved}
+              />
+            </div>
           )}
         </aside>
       </main>

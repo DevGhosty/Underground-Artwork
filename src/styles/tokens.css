@@ -1,0 +1,65 @@
+/* Design tokens: primitives, semantic aliases, layout, motion, z-index. */
+:root {
+  color: var(--color-fg);
+  background: var(--color-surface);
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+
+  /* Typography */
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-display: Impact, "Arial Black", sans-serif;
+  --font-mono: "Courier New", Courier, monospace;
+  --font-size-caption: 0.78rem;
+  --font-size-meta: 0.8rem;
+  --font-size-small-ui: 0.82rem;
+  --line-height-snug: 1.15;
+
+  /* Brand / primitives */
+  --paper: #f5f0e5;
+  --paper-warm: #fbf7eb;
+  --ink: #201f1b;
+  /* Darkened vs legacy #706a5d for WCAG AA on body backgrounds (~6:1 on paper). */
+  --muted: #534f46;
+  --line: rgba(32, 31, 27, 0.16);
+  --line-strong: rgba(32, 31, 27, 0.34);
+  --red: #df3527;
+  --blue: #245db9;
+  --yellow: #f0c934;
+  --teal: #2c8d7d;
+  --magenta: #d94f8d;
+  --green: #4e8d5a;
+  --shadow: 0 18px 50px rgba(44, 39, 31, 0.12);
+
+  /* Semantic (consume these in new/refined rules; map to primitives) */
+  --color-fg: var(--ink);
+  --color-fg-muted: var(--muted);
+  /* Supporting copy on warm surfaces (~7:1 on paper-warm) */
+  --color-fg-subtle: #454239;
+  --color-on-inverse: #fffaf0;
+  --color-surface: var(--paper);
+  --color-surface-raised: rgba(255, 252, 242, 0.82);
+  --color-surface-muted: rgba(255, 252, 242, 0.72);
+  --border-default: var(--line);
+  --border-strong: var(--line-strong);
+  --color-placeholder: #636058;
+
+  /* Layout */
+  --topbar-height: 98px;
+
+  /* z-index scale */
+  --z-topbar: 20;
+  --z-dialog: 60;
+
+  /* Motion */
+  --duration-fast: 160ms;
+  --duration-medium: 260ms;
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Focus ring (matches legacy red accent) */
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: rgba(223, 53, 39, 0.62);
+}

@@ -1,0 +1,15 @@
+/*
+ * Entry stylesheet — layered cascade per UI polish plan.
+ * Layers: tokens → base → components → utilities (patterns / overrides).
+ *
+ * Reusable component-class patterns:
+ * - Surfaces: .surface-panel, .surface-muted — raised paper shells + borders.
+ * - Actions: .btn-primary matches bold CTAs (contact flows); compose with existing .ghost-button.
+ * - Filter chips: .price-chips button / .category-tab — use tokens via semantic vars for fills.
+ */
+@layer tokens, base, components, utilities;
+
+@import "./tokens.css" layer(tokens);
+@import "./base.css" layer(base);
+@import "./components.css" layer(components);
+@import "./utilities.css" layer(utilities);

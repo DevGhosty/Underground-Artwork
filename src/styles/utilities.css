@@ -1,0 +1,184 @@
+/* View Transitions API: wire `document.startViewTransition` in the router when you want route morphs. */
+
+/* Dialog enter: first paint hooks into transitions when supported. */
+@starting-style {
+  .dialog-backdrop {
+    opacity: 0;
+  }
+
+  .dialog-panel {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/* Listing swap wrapper (keyed by listing id in React). */
+.listing-detail-shell {
+  animation: detail-enter var(--duration-medium) var(--ease-out) both;
+}
+
+@keyframes detail-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listing-detail-shell {
+    animation: none;
+  }
+}
+
+/* Accent tint — data-driven accent-* classes from listings. */
+.art-card[class*="accent-"] {
+  border-left-width: 3px;
+  border-left-style: solid;
+}
+
+.art-card.accent-red {
+  border-left-color: var(--red);
+}
+
+.art-card.accent-blue {
+  border-left-color: var(--blue);
+}
+
+.art-card.accent-teal {
+  border-left-color: var(--teal);
+}
+
+.art-card.accent-yellow {
+  border-left-color: var(--yellow);
+}
+
+.art-card.accent-magenta {
+  border-left-color: var(--magenta);
+}
+
+.art-card.accent-green {
+  border-left-color: var(--green);
+}
+
+.listing-detail[class*="accent-"] {
+  border-left-width: 4px;
+  border-left-style: solid;
+}
+
+.listing-detail.accent-red {
+  border-left-color: var(--red);
+}
+
+.listing-detail.accent-blue {
+  border-left-color: var(--blue);
+}
+
+.listing-detail.accent-teal {
+  border-left-color: var(--teal);
+}
+
+.listing-detail.accent-yellow {
+  border-left-color: var(--yellow);
+}
+
+.listing-detail.accent-magenta {
+  border-left-color: var(--magenta);
+}
+
+.listing-detail.accent-green {
+  border-left-color: var(--green);
+}
+
+/* Grid stagger — subtle; skipped when reduced-motion is on (global rule shortens animation). */
+@media (prefers-reduced-motion: no-preference) {
+  .gallery-column .artwork-grid .art-card {
+    animation: card-rise var(--duration-medium) var(--ease-out) backwards;
+  }
+
+  .gallery-column .artwork-grid .art-card:nth-child(1) {
+    animation-delay: 0.02s;
+  }
+
+  .gallery-column .artwork-grid .art-card:nth-child(2) {
+    animation-delay: 0.05s;
+  }
+
+  .gallery-column .artwork-grid .art-card:nth-child(3) {
+    animation-delay: 0.08s;
+  }
+
+  .gallery-column .artwork-grid .art-card:nth-child(4) {
+    animation-delay: 0.11s;
+  }
+
+  .gallery-column .artwork-grid .art-card:nth-child(5) {
+    animation-delay: 0.14s;
+  }
+
+  .gallery-column .artwork-grid .art-card:nth-child(6) {
+    animation-delay: 0.17s;
+  }
+
+  .gallery-column .artwork-grid .art-card:nth-child(7) {
+    animation-delay: 0.2s;
+  }
+
+  .gallery-column .artwork-grid .art-card:nth-child(8) {
+    animation-delay: 0.23s;
+  }
+
+  .gallery-column .artwork-grid .art-card:nth-child(n + 9) {
+    animation-delay: 0.26s;
+  }
+}
+
+@keyframes card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Shared surfaces / primary CTA pattern names (compose with existing markup). */
+.surface-panel {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.surface-muted {
+  background: var(--color-surface-muted);
+  border: 1px solid var(--border-default);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 18px;
+  color: var(--color-on-inverse);
+  font-weight: 900;
+  text-transform: uppercase;
+  background: var(--red);
+  border: 0;
+  border-radius: 4px;
+}
+
+.dialog-field input::placeholder,
+.dialog-field textarea::placeholder {
+  color: var(--color-placeholder);
+  opacity: 1;
+}
