@@ -1,10 +1,13 @@
 .app-shell {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
 .topbar {
   position: sticky;
   top: 0;
+  flex-shrink: 0;
   z-index: var(--z-topbar);
   display: grid;
   grid-template-columns: 270px minmax(260px, 1fr) auto;
@@ -120,6 +123,8 @@
 .browse-shell {
   display: grid;
   grid-template-columns: minmax(250px, 300px) minmax(460px, 1fr) minmax(360px, 440px);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: "filter gallery detail";
   min-height: calc(100vh - var(--topbar-height));
 }
 
@@ -130,20 +135,27 @@
 }
 
 .filter-column {
+  grid-area: filter;
   border-right: 1px solid var(--line);
 }
 
+.gallery-column {
+  grid-area: gallery;
+}
+
 .detail-column {
+  grid-area: detail;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   border-left: 1px solid var(--line);
+  background: rgba(243, 237, 224, 0.7);
 }
 
 .filter-rail {
-  position: sticky;
-  top: var(--topbar-height);
   display: flex;
   flex-direction: column;
   gap: 26px;
-  min-height: calc(100vh - var(--topbar-height));
   padding: 26px 28px 36px;
 }
 
@@ -640,12 +652,6 @@ input[type="range"] {
 
 .status-stamp.status-sold {
   color: #8c867b;
-}
-
-.detail-column {
-  display: flex;
-  flex-direction: column;
-  background: rgba(243, 237, 224, 0.7);
 }
 
 .map-panel {
@@ -1277,10 +1283,13 @@ input[type="range"] {
 
   .browse-shell {
     grid-template-columns: minmax(220px, 270px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "filter gallery"
+      "filter detail";
   }
 
   .detail-column {
-    grid-column: 2;
     border-top: 1px solid var(--line);
   }
 
@@ -1400,6 +1409,39 @@ input[type="range"] {
     grid-template-columns: 1fr;
   }
 }
+
+@media (min-width: 861px) {
+  /*
+   * Browse grid uses 1fr rows + flex:1 main — needs a definite column height on .app-shell.
+   * Otherwise flex/grid resolve like auto height → rows collapse → no column scrolling.
+   */
+  .app-shell:has(main.browse-shell) {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .browse-shell {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .filter-column,
+  .gallery-column,
+  .detail-column {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .detail-column > * {
+    flex-shrink: 0;
+  }
+}
+
 @media (max-width: 560px) {
   .nav-links {
     gap: 12px;
