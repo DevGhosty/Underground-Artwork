@@ -4,10 +4,11 @@ import type { Listing } from '../types';
 
 type ListingDetailProps = {
   listing: Listing;
+  onContactClick: (listing: Listing) => void;
   onSaveToggle: (id: number) => void;
 };
 
-export function ListingDetail({ listing, onSaveToggle }: ListingDetailProps) {
+export function ListingDetail({ listing, onContactClick, onSaveToggle }: ListingDetailProps) {
   return (
     <article className={`listing-detail accent-${listing.accent}`}>
       <div className="detail-count">01 / 86</div>
@@ -51,7 +52,7 @@ export function ListingDetail({ listing, onSaveToggle }: ListingDetailProps) {
         </span>
       </div>
 
-      <button className="contact-button" type="button">
+      <button className="contact-button" type="button" onClick={() => onContactClick(listing)}>
         Contact seller
         <span aria-hidden="true">→</span>
       </button>
