@@ -60,6 +60,15 @@ npm install
 npm run dev
 ```
 
+Backend API (HTTP server for listings — see [docs/FULL_STACK_PLAN.md](docs/FULL_STACK_PLAN.md)):
+
+```bash
+npm run dev:api
+```
+
+Defaults: `http://127.0.0.1:3000`, CORS for `http://localhost:5173`. Copy
+`apps/api/.env.example` to `apps/api/.env` to override `PORT` or `WEB_ORIGINS`.
+
 Build the app before opening a pull request:
 
 ```bash
