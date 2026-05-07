@@ -44,6 +44,11 @@ button {
   cursor: pointer;
 }
 
+:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -592,6 +597,7 @@ input[type="range"] {
 .save-button.is-saved,
 .detail-save.is-saved {
   color: var(--red);
+  animation: save-pop 190ms ease-out;
 }
 
 .save-button.is-saved svg,
@@ -764,6 +770,16 @@ input[type="range"] {
 
 .map-pin {
   color: var(--blue);
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 .map-pin svg {
@@ -775,6 +791,10 @@ input[type="range"] {
 .map-pin.is-selected {
   color: var(--red);
   transform: translateY(-4px) scale(1.12);
+}
+
+.map-pin:hover {
+  transform: translateY(-3px) scale(1.08);
 }
 
 .pin-1 {
@@ -855,6 +875,11 @@ input[type="range"] {
 
 .map-controls button:last-child {
   border-bottom: 0;
+}
+
+.map-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
 }
 
 .listing-detail {
@@ -1309,6 +1334,32 @@ input[type="range"] {
   color: var(--muted);
 }
 
+@keyframes save-pop {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.12);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes filter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 1250px) {
   .topbar {
     grid-template-columns: 230px minmax(240px, 1fr);
@@ -1388,6 +1439,10 @@ input[type="range"] {
     display: block;
   }
 
+  .filter-column.is-open .filter-rail {
+    animation: filter-rise 180ms ease-out;
+  }
+
   .filter-rail {
     position: static;
     min-height: auto;
@@ -1444,6 +1499,17 @@ input[type="range"] {
 
   .seller-next-steps {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
   }
 }
 
