@@ -2,13 +2,13 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { InMemoryListingsRepository } from "./listings-repository.js";
-import { rateLimitTake } from "./rate-limit.js";
 import {
   contactBodySchema,
   listingsQueryFromSearchParams,
   parseListingIdParam,
-} from "./schemas.js";
+} from "@underground-artwork/shared";
+import { InMemoryListingsRepository } from "./listings-repository.js";
+import { rateLimitTake } from "./rate-limit.js";
 
 function parseOrigins(raw: string | undefined): string[] {
   if (!raw?.trim()) return ["http://localhost:5173"];
