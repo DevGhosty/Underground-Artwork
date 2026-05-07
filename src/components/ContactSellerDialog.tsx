@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
+import { type FormEvent, type MouseEvent, useEffect, useId, useRef, useState } from 'react';
 import type { Listing } from '../types';
 import { ApiError, sendContact } from '../lib/api';
 
@@ -76,7 +76,7 @@ export function ContactSellerDialog({ listing, onClose }: ContactSellerDialogPro
     }
   }
 
-  function handleBackdropMouseDown(event: React.MouseEvent) {
+  function handleBackdropMouseDown(event: MouseEvent<HTMLDivElement>) {
     if (event.target === event.currentTarget) {
       onClose();
     }

@@ -3,9 +3,9 @@ import { listingStatusValues } from '@underground-artwork/shared';
 import { MapPin } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchListings } from '../lib/api';
 import type { ListingStatus, ListingsSort } from '@underground-artwork/shared';
 import type { SessionUser } from '../types';
+import { fetchListings } from '../lib/api';
 import { ArtworkCard } from './ArtworkCard';
 import { TopNav } from './TopNav';
 

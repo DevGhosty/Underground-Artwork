@@ -4,12 +4,13 @@ import type { Listing } from '../types';
 
 type MapPanelProps = {
   listings: Listing[];
+  onListingSelect: (id: number) => void;
   selectedListing: Listing;
 };
 
 const ZOOM_STEPS = [0.82, 0.92, 1, 1.1, 1.22] as const;
 
-export function MapPanel({ listings, selectedListing }: MapPanelProps) {
+export function MapPanel({ listings, onListingSelect, selectedListing }: MapPanelProps) {
   const defaultIndex = ZOOM_STEPS.indexOf(1);
   const [zoomIndex, setZoomIndex] = useState(defaultIndex === -1 ? 2 : defaultIndex);
   const scale = ZOOM_STEPS[zoomIndex] ?? 1;
@@ -47,14 +48,17 @@ export function MapPanel({ listings, selectedListing }: MapPanelProps) {
           <span className="road road-two" />
           <span className="road road-three" />
           {listings.slice(0, 5).map((listing, index) => (
-            <span
+            <button
+              aria-label={`Show ${listing.title} in ${listing.neighborhood}`}
               className={`map-pin pin-${index + 1} ${
                 listing.id === selectedListing.id ? 'is-selected' : ''
               }`}
               key={listing.id}
+              type="button"
+              onClick={() => onListingSelect(listing.id)}
             >
-              <MapPin size={26} />
-            </span>
+              <MapPin size={26} aria-hidden="true" />
+            </button>
           ))}
         </div>
         <div aria-label="Illustrative zoom controls" className="map-controls" role="group">

@@ -16,6 +16,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import type { ListingCategory, ListingStatus, ListingsSort } from '@underground-artwork/shared';
+import type { Listing, PriceBand, SessionUser } from './types';
 import { AccountPage } from './components/AccountPage';
 import { ArtworkCard } from './components/ArtworkCard';
 import { ContactSellerDialog } from './components/ContactSellerDialog';
@@ -27,10 +28,9 @@ import { SellPage } from './components/SellPage';
 import { SignInPage } from './components/SignInPage';
 import { TopNav } from './components/TopNav';
 import { listings as seedListings } from './data/listings';
-import { fetchListingById, fetchListings } from './lib/api';
-import { persistSavedToggles, loadSavedToggles } from './lib/saved-storage';
+import { fetchListing, fetchListings } from './lib/api';
+import { loadSavedToggles, persistSavedToggles } from './lib/saved-storage';
 import { clearStoredSession, readStoredSession, storeSession } from './lib/session';
-import type { Listing, PriceBand, SessionUser } from './types';
 
 const mediums = ['Print', 'Painting', 'Drawing', 'Mixed Media', 'Ceramic', 'Textile'];
 const statuses: ListingStatus[] = [...listingStatusValues];
@@ -102,14 +102,8 @@ export default function App() {
           />
         }
       />
-      <Route
-        path="/signin"
-        element={<SignInPage currentUser={currentUser} onSignIn={signIn} />}
-      />
-      <Route
-        path="/account"
-        element={<AccountPage currentUser={currentUser} onSignOut={signOut} />}
-      />
+      <Route path="/signin" element={<SignInPage currentUser={currentUser} onSignIn={signIn} />} />
+      <Route path="/account" element={<AccountPage currentUser={currentUser} onSignOut={signOut} />} />
       <Route
         path="/saved"
         element={
@@ -129,8 +123,8 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
   const navigate = useNavigate();
   const { listingId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [contactListing, setContactListing] = useState<Listing | null>(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const search = searchParams.get('search') ?? '';
   const selectedMediums = searchParams.getAll('medium').filter((medium) => mediums.includes(medium));
@@ -183,7 +177,7 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
 
   const listingDetailQuery = useQuery({
     queryKey: ['listing', routeListingId],
-    queryFn: () => fetchListingById(routeListingId!),
+    queryFn: () => fetchListing(routeListingId!),
     enabled:
       routeListingId !== null &&
       !listingsQuery.isLoading &&
@@ -346,6 +340,8 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
 
       <main className="browse-shell" id="browse">
         <button
+          aria-controls="filter-panel"
+          aria-expanded={showMobileFilters}
           className="mobile-filter-button"
           type="button"
           onClick={() => setShowMobileFilters((current) => !current)}
@@ -354,7 +350,7 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
           Filters
         </button>
 
-        <aside className={`filter-column ${showMobileFilters ? 'is-open' : ''}`}>
+        <aside id="filter-panel" className={`filter-column ${showMobileFilters ? 'is-open' : ''}`}>
           <FilterRail
             distance={distance}
             mediums={mediums}
@@ -461,7 +457,11 @@ function BrowsePage({ currentUser, savedOverrides, setSavedOverrides }: BrowsePa
         </section>
 
         <aside className="detail-column" aria-label="Selected artwork">
-          <MapPanel listings={mapListings} selectedListing={selectedListing} />
+          <MapPanel
+            listings={mapListings}
+            selectedListing={selectedListing}
+            onListingSelect={selectListing}
+          />
           {showDetailSpinner && (
             <article aria-busy="true" className="listing-detail listing-detail--loading">
               <h2>Loading listing…</h2>

@@ -45,6 +45,12 @@ export type ListingsRequest = {
   pageSize?: number;
 };
 
+export type ContactSellerRequest = {
+  listingId: number;
+  message: string;
+  contactHint?: string;
+};
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -140,7 +146,7 @@ export async function fetchListings({
   return resolveListingImages(parsed.data.data);
 }
 
-export async function fetchListingById(id: number): Promise<Listing> {
+export async function fetchListing(id: number): Promise<Listing> {
   const response = await fetch(`${getApiBaseUrl()}/listings/${id}`);
   if (!response.ok) {
     throw new ApiError(await parseErrorMessage(response), response.status);
@@ -170,4 +176,17 @@ export async function sendContact(body: ContactBody): Promise<void> {
   if (!response.ok) {
     throw new ApiError(await parseErrorMessage(response), response.status);
   }
+}
+
+/** @deprecated Prefer sendContact with ContactBody — kept for compatibility */
+export async function sendContactRequest({
+  listingId,
+  message,
+  contactHint,
+}: ContactSellerRequest): Promise<void> {
+  return sendContact({
+    listingId,
+    message,
+    contactHint: contactHint?.trim() || undefined,
+  });
 }
