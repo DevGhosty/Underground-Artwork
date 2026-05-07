@@ -1115,6 +1115,49 @@ input[type="range"] {
   place-items: center;
 }
 
+.saved-page {
+  min-height: 100vh;
+  padding: 34px clamp(18px, 4vw, 44px) 56px;
+}
+
+.route-header {
+  display: grid;
+  gap: 10px;
+  margin: 0 auto 26px;
+  max-width: 980px;
+}
+
+.route-header .section-note {
+  margin: 0;
+}
+
+.route-header h1 {
+  margin: 0;
+  font-family: Impact, "Arial Black", sans-serif;
+  font-size: clamp(3.6rem, 9vw, 6.6rem);
+  line-height: 0.86;
+  text-transform: uppercase;
+}
+
+.route-header p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.saved-grid {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  column-count: 3;
+  column-gap: 14px;
+}
+
+.saved-empty-link {
+  max-width: 280px;
+  margin-inline: auto;
+}
+
 .auth-card {
   width: min(720px, 100%);
   padding: 34px;
@@ -1212,6 +1255,29 @@ input[type="range"] {
 .account-summary dd {
   margin: 4px 0 0;
   font-size: 1.05rem;
+}
+
+.sell-card {
+  width: min(820px, 100%);
+}
+
+.seller-next-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.seller-next-steps span {
+  min-height: 48px;
+  padding: 12px 14px;
+  color: var(--ink);
+  background: rgba(255, 252, 242, 0.78);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .offline-note {
@@ -1352,6 +1418,10 @@ input[type="range"] {
     column-count: 1;
   }
 
+  .saved-grid {
+    column-count: 1;
+  }
+
   .art-card,
   .art-card-wide,
   .art-card-tall {
@@ -1370,6 +1440,10 @@ input[type="range"] {
 
   .detail-main {
     grid-template-columns: 108px 1fr;
+  }
+
+  .seller-next-steps {
+    grid-template-columns: 1fr;
   }
 }
 
