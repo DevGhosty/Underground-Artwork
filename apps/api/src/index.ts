@@ -65,6 +65,7 @@ app.get("/listings", (c) => {
       minPrice: q.minPrice,
       maxPrice: q.maxPrice,
       maxDistance: q.maxDistance,
+      category: q.category,
       sort: q.sort,
     },
     { page: q.page, pageSize: q.pageSize },

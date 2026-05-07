@@ -1,5 +1,10 @@
 import { listingListResponseSchema } from '@underground-artwork/shared';
-import type { Listing, ListingStatus, ListingsSort } from '@underground-artwork/shared';
+import type {
+  Listing,
+  ListingCategory,
+  ListingStatus,
+  ListingsSort,
+} from '@underground-artwork/shared';
 import artwork01 from '../assets/artwork/artwork-01.webp';
 import artwork02 from '../assets/artwork/artwork-02.webp';
 import artwork03 from '../assets/artwork/artwork-03.webp';
@@ -26,6 +31,9 @@ export type ListingsRequest = {
   search: string;
   mediums: string[];
   statuses: ListingStatus[];
+  category?: ListingCategory;
+  minPrice?: number;
+  maxPrice?: number;
   maxDistance: number;
   sort: ListingsSort;
   pageSize?: number;
@@ -64,6 +72,9 @@ export async function fetchListings({
   search,
   mediums,
   statuses,
+  category,
+  minPrice,
+  maxPrice,
   maxDistance,
   sort,
   pageSize = 50,
@@ -76,6 +87,15 @@ export async function fetchListings({
 
   if (search.trim()) {
     params.set('search', search.trim());
+  }
+  if (category) {
+    params.set('category', category);
+  }
+  if (minPrice !== undefined) {
+    params.set('minPrice', String(minPrice));
+  }
+  if (maxPrice !== undefined) {
+    params.set('maxPrice', String(maxPrice));
   }
   appendRepeated(params, 'medium', mediums);
   appendRepeated(params, 'status', statuses);

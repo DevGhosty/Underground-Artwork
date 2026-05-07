@@ -43,7 +43,16 @@ export class InMemoryListingsRepository {
       const matchesMin = q.minPrice === undefined || listing.price >= q.minPrice;
       const matchesMax = q.maxPrice === undefined || listing.price <= q.maxPrice;
       const matchesDist = q.maxDistance === undefined || listing.distance <= q.maxDistance;
-      return matchesSearch && matchesMedium && matchesStatus && matchesMin && matchesMax && matchesDist;
+      const matchesCategory = q.category === undefined || listing.category === q.category;
+      return (
+        matchesSearch &&
+        matchesMedium &&
+        matchesStatus &&
+        matchesMin &&
+        matchesMax &&
+        matchesDist &&
+        matchesCategory
+      );
     });
   }
 

@@ -1,38 +1,105 @@
 import { useQuery } from '@tanstack/react-query';
+import {
+  listingCategoryValues,
+  listingStatusValues,
+  listingsSortValues,
+} from '@underground-artwork/shared';
 import { Heart, LayoutGrid, ListFilter, MapPin, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import type { ListingStatus, ListingsSort } from '@underground-artwork/shared';
+import type { Dispatch, SetStateAction } from 'react';
+import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import type { ListingCategory, ListingStatus, ListingsSort } from '@underground-artwork/shared';
 import { ArtworkCard } from './components/ArtworkCard';
 import { FilterRail } from './components/FilterRail';
 import { ListingDetail } from './components/ListingDetail';
 import { MapPanel } from './components/MapPanel';
 import { listings as seedListings } from './data/listings';
 import { fetchListings } from './lib/api';
+import type { PriceBand } from './types';
 
 const mediums = ['Print', 'Painting', 'Drawing', 'Mixed Media', 'Ceramic', 'Textile'];
-const statuses: ListingStatus[] = ['Available', 'Pending', 'Sold'];
+const statuses: ListingStatus[] = [...listingStatusValues];
+const defaultDistance = 25;
+const defaultSort: ListingsSort = 'newest';
+
+const categories: { label: string; value?: ListingCategory }[] = [
+  { label: 'All' },
+  { label: 'Prints', value: 'prints' },
+  { label: 'Painting', value: 'painting' },
+  { label: 'Drawing', value: 'drawing' },
+  { label: 'Mixed Media', value: 'mixed-media' },
+  { label: 'Objects', value: 'objects' },
+];
+
+const priceRanges: Record<PriceBand, { minPrice?: number; maxPrice?: number }> = {
+  all: {},
+  'under-200': { maxPrice: 199 },
+  '200-500': { minPrice: 200, maxPrice: 500 },
+  '500-1000': { minPrice: 500, maxPrice: 1000 },
+  '1000-plus': { minPrice: 1000 },
+};
+
+type BrowsePageProps = {
+  savedOverrides: Record<number, boolean>;
+  setSavedOverrides: Dispatch<SetStateAction<Record<number, boolean>>>;
+};
 
 export default function App() {
-  const [selectedId, setSelectedId] = useState(seedListings[0].id);
-  const [search, setSearch] = useState('');
-  const [selectedMediums, setSelectedMediums] = useState<string[]>([]);
-  const [selectedStatuses, setSelectedStatuses] = useState<ListingStatus[]>([
-    'Available',
-    'Pending',
-    'Sold',
-  ]);
-  const [distance, setDistance] = useState(25);
-  const [sort, setSort] = useState<ListingsSort>('newest');
   const [savedOverrides, setSavedOverrides] = useState<Record<number, boolean>>({});
+
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <BrowsePage savedOverrides={savedOverrides} setSavedOverrides={setSavedOverrides} />
+        }
+      />
+      <Route
+        path="/listings/:listingId"
+        element={
+          <BrowsePage savedOverrides={savedOverrides} setSavedOverrides={setSavedOverrides} />
+        }
+      />
+    </Routes>
+  );
+}
+
+function BrowsePage({ savedOverrides, setSavedOverrides }: BrowsePageProps) {
+  const navigate = useNavigate();
+  const { listingId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const search = searchParams.get('search') ?? '';
+  const selectedMediums = searchParams.getAll('medium').filter((medium) => mediums.includes(medium));
+  const selectedStatuses = readStatuses(searchParams);
+  const distance = readDistance(searchParams);
+  const sort = readSort(searchParams);
+  const selectedCategory = readCategory(searchParams);
+  const selectedPrice = readPrice(searchParams);
+  const priceRange = priceRanges[selectedPrice];
 
   const listingsQuery = useQuery({
-    queryKey: ['listings', { search, selectedMediums, selectedStatuses, distance, sort }],
+    queryKey: [
+      'listings',
+      {
+        search,
+        selectedMediums,
+        selectedStatuses,
+        distance,
+        sort,
+        selectedCategory,
+        selectedPrice,
+      },
+    ],
     queryFn: () =>
       fetchListings({
         search,
         mediums: selectedMediums,
         statuses: selectedStatuses,
+        category: selectedCategory,
+        minPrice: priceRange.minPrice,
+        maxPrice: priceRange.maxPrice,
         maxDistance: distance,
         sort,
       }),
@@ -48,8 +115,9 @@ export default function App() {
     [apiListings, savedOverrides],
   );
 
+  const routeListingId = readListingId(listingId);
   const selectedListing =
-    listings.find((listing) => listing.id === selectedId) ?? listings[0] ?? seedListings[0];
+    listings.find((listing) => listing.id === routeListingId) ?? listings[0] ?? seedListings[0];
 
   function toggleSaved(id: number) {
     const listing = listings.find((item) => item.id === id);
@@ -57,47 +125,123 @@ export default function App() {
     setSavedOverrides((current) => ({ ...current, [id]: !listing.saved }));
   }
 
+  function updateSearchParams(update: (next: URLSearchParams) => void) {
+    const next = new URLSearchParams(searchParams);
+    update(next);
+    setSearchParams(next);
+  }
+
+  function updateSearch(value: string) {
+    updateSearchParams((next) => {
+      if (value.trim()) {
+        next.set('search', value);
+      } else {
+        next.delete('search');
+      }
+    });
+  }
+
   function toggleMedium(medium: string) {
-    setSelectedMediums((currentMediums) =>
-      currentMediums.includes(medium)
-        ? currentMediums.filter((item) => item !== medium)
-        : [...currentMediums, medium],
-    );
+    const nextMediums = selectedMediums.includes(medium)
+      ? selectedMediums.filter((item) => item !== medium)
+      : mediums.filter((item) => item === medium || selectedMediums.includes(item));
+
+    updateSearchParams((next) => {
+      next.delete('medium');
+      nextMediums.forEach((item) => next.append('medium', item));
+    });
   }
 
   function toggleStatus(status: ListingStatus) {
-    setSelectedStatuses((currentStatuses) =>
-      currentStatuses.includes(status)
-        ? currentStatuses.filter((item) => item !== status)
-        : [...currentStatuses, status],
-    );
+    const nextStatuses = selectedStatuses.includes(status)
+      ? selectedStatuses.filter((item) => item !== status)
+      : statuses.filter((item) => item === status || selectedStatuses.includes(item));
+
+    updateSearchParams((next) => {
+      next.delete('status');
+      if (nextStatuses.length > 0 && nextStatuses.length < statuses.length) {
+        nextStatuses.forEach((item) => next.append('status', item));
+      }
+    });
+  }
+
+  function updateDistance(value: number) {
+    updateSearchParams((next) => {
+      if (value === defaultDistance) {
+        next.delete('distance');
+      } else {
+        next.set('distance', String(value));
+      }
+    });
+  }
+
+  function updateSort(value: ListingsSort) {
+    updateSearchParams((next) => {
+      if (value === defaultSort) {
+        next.delete('sort');
+      } else {
+        next.set('sort', value);
+      }
+    });
+  }
+
+  function updateCategory(value?: ListingCategory) {
+    updateSearchParams((next) => {
+      if (value) {
+        next.set('category', value);
+      } else {
+        next.delete('category');
+      }
+    });
+  }
+
+  function updatePrice(value: PriceBand) {
+    updateSearchParams((next) => {
+      if (value === 'all') {
+        next.delete('price');
+      } else {
+        next.set('price', value);
+      }
+    });
+  }
+
+  function resetFilters() {
+    setSearchParams(new URLSearchParams());
+  }
+
+  function selectListing(id: number) {
+    const currentSearch = searchParams.toString();
+    navigate({
+      pathname: `/listings/${id}`,
+      search: currentSearch ? `?${currentSearch}` : '',
+    });
   }
 
   return (
     <div className="app-shell">
       <header className="topbar">
-        <a className="brand-mark" href="/" aria-label="Underground Artwork home">
+        <Link className="brand-mark" to="/" aria-label="Underground Artwork home">
           <span className="brand-stamp" aria-hidden="true" />
           <span>
             Underground
             <strong>Artwork</strong>
           </span>
-        </a>
+        </Link>
 
         <label className="search-field">
           <Search size={18} aria-hidden="true" />
           <input
             type="search"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => updateSearch(event.target.value)}
             placeholder="Search artwork, artist, medium, neighborhood..."
           />
         </label>
 
         <nav className="nav-links" aria-label="Main navigation">
-          <a className="active" href="#browse">
+          <Link className="active" to="/">
             Browse
-          </a>
+          </Link>
           <a href="#sell">Sell</a>
           <a className="saved-link" href="#saved">
             <Heart size={18} aria-hidden="true" />
@@ -124,17 +268,13 @@ export default function App() {
             distance={distance}
             mediums={mediums}
             selectedMediums={selectedMediums}
+            selectedPrice={selectedPrice}
             selectedStatuses={selectedStatuses}
             statuses={statuses}
-            onDistanceChange={setDistance}
+            onDistanceChange={updateDistance}
             onMediumToggle={toggleMedium}
-            onReset={() => {
-              setSearch('');
-              setSelectedMediums([]);
-              setSelectedStatuses(['Available', 'Pending', 'Sold']);
-              setDistance(25);
-              setSort('newest');
-            }}
+            onPriceChange={updatePrice}
+            onReset={resetFilters}
             onStatusToggle={toggleStatus}
           />
         </aside>
@@ -154,7 +294,7 @@ export default function App() {
                 Sort:
                 <select
                   value={sort}
-                  onChange={(event) => setSort(event.target.value as ListingsSort)}
+                  onChange={(event) => updateSort(event.target.value as ListingsSort)}
                 >
                   <option value="newest">Newest</option>
                   <option value="nearby">Nearby</option>
@@ -168,13 +308,17 @@ export default function App() {
           </div>
 
           <div className="category-strip" aria-label="Artwork categories">
-            {['All', 'Prints', 'Painting', 'Drawing', 'Mixed Media', 'Objects'].map((category) => (
+            {categories.map((category) => (
               <button
-                className={category === 'All' ? 'category-tab is-active' : 'category-tab'}
-                key={category}
+                aria-pressed={category.value === selectedCategory}
+                className={
+                  category.value === selectedCategory ? 'category-tab is-active' : 'category-tab'
+                }
+                key={category.label}
+                onClick={() => updateCategory(category.value)}
                 type="button"
               >
-                {category}
+                {category.label}
               </button>
             ))}
           </div>
@@ -210,7 +354,7 @@ export default function App() {
                   key={listing.id}
                   listing={listing}
                   onSaveToggle={toggleSaved}
-                  onSelect={setSelectedId}
+                  onSelect={selectListing}
                 />
               ))}
             </div>
@@ -232,4 +376,53 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+function readStatuses(searchParams: URLSearchParams): ListingStatus[] {
+  const nextStatuses = searchParams.getAll('status').filter(isListingStatus);
+  return nextStatuses.length > 0 ? nextStatuses : statuses;
+}
+
+function readDistance(searchParams: URLSearchParams): number {
+  const distanceParam = searchParams.get('distance');
+  if (distanceParam === null) return defaultDistance;
+  const rawDistance = Number(distanceParam);
+  if (!Number.isFinite(rawDistance)) return defaultDistance;
+  return Math.min(Math.max(Math.round(rawDistance), 1), 50);
+}
+
+function readSort(searchParams: URLSearchParams): ListingsSort {
+  const sort = searchParams.get('sort');
+  return sort && isListingsSort(sort) ? sort : defaultSort;
+}
+
+function readCategory(searchParams: URLSearchParams): ListingCategory | undefined {
+  const category = searchParams.get('category');
+  return category && isListingCategory(category) ? category : undefined;
+}
+
+function readPrice(searchParams: URLSearchParams): PriceBand {
+  const price = searchParams.get('price');
+  return price && isPriceBand(price) ? price : 'all';
+}
+
+function readListingId(listingId: string | undefined): number | null {
+  const id = Number(listingId);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+function isListingStatus(value: string): value is ListingStatus {
+  return (listingStatusValues as readonly string[]).includes(value);
+}
+
+function isListingCategory(value: string): value is ListingCategory {
+  return (listingCategoryValues as readonly string[]).includes(value);
+}
+
+function isListingsSort(value: string): value is ListingsSort {
+  return (listingsSortValues as readonly string[]).includes(value);
+}
+
+function isPriceBand(value: string): value is PriceBand {
+  return Object.prototype.hasOwnProperty.call(priceRanges, value);
 }
